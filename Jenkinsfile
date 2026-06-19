@@ -10,6 +10,9 @@ pipeline {
         KP_API_KEY = credentials('kp-api-key')
         WEBAPP_URL = credentials('webapp-url')
         DB_PASSWORD = credentials('db-password')
+        
+        // Путь к проекту на хосте (Jenkins workspace будет смонтирован)
+        HOST_WORKSPACE = "${WORKSPACE}"
     }
   
     options {
@@ -40,10 +43,34 @@ pipeline {
             }
         }
 
+        stage('Prepare Environment') {
+            steps {
+                echo 'Creating .env file on host...'
+                sh '''
+                    # Создаем .env файл в текущем воркспейсе
+                    cat > ${WORKSPACE}/.env << EOF
+OPENAI_API_KEY=${OPENAI_API_KEY}
+TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+KP_API_KEY=${KP_API_KEY}
+WEBAPP_URL=${WEBAPP_URL}
+DB_HOST=db
+DB_NAME=movies_db
+DB_USER=user_admin
+DB_PASSWORD=${DB_PASSWORD}
+DB_PORT=5432
+EOF
+                    chmod 600 ${WORKSPACE}/.env
+                '''
+            }
+        }
+
         stage('Test & Validate DB') {
             steps {
                 echo 'Running integration tests for Database...'
                 sh '''
+                    # Переходим в директорию проекта и запускаем через хостовый Docker
+                    cd ${WORKSPACE}
+                    
                     # Запускаем контейнер базы данных для проверки
                     docker compose up -d db
 
@@ -66,30 +93,47 @@ pipeline {
             }
         }
 
-        stage('Deploy via Docker Compose') {
+        stage('Cleanup Old Deployment') {
             steps {
-                echo 'Deploying project directly to the host server via socket...'
+                echo 'Stopping and removing old containers...'
                 sh '''
-                    # Создаем .env файл в текущем воркспейсе
-                    cat > .env << EOF
-OPENAI_API_KEY=${OPENAI_API_KEY}
-TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-KP_API_KEY=${KP_API_KEY}
-WEBAPP_URL=${WEBAPP_URL}
-DB_HOST=db
-DB_NAME=movies_db
-DB_USER=user_admin
-DB_PASSWORD=${DB_PASSWORD}
-DB_PORT=5432
-EOF
-                    echo "Stopping old microservices if they are running..."
-                    docker compose down || true
+                    cd ${WORKSPACE}
+                    
+                    # Останавливаем старые контейнеры (если есть)
+                    docker compose down --remove-orphans || true
+                    
+                    # Удаляем старые образы приложения (опционально)
+                    # docker images | grep "${PROJECT_NAME}" | awk '{print $3}' | xargs -r docker rmi -f || true
+                '''
+            }
+        }
 
-                    echo "Building new images without cache..."
+        stage('Build Images') {
+            steps {
+                echo 'Building Docker images on host machine...'
+                sh '''
+                    cd ${WORKSPACE}
+                    
+                    # Собираем образы без кэша
                     docker compose build --no-cache
+                    
+                    # Выводим список собранных образов
+                    docker compose images
+                '''
+            }
+        }
 
-                    echo "Launching all services in detached mode..."
+        stage('Deploy Services') {
+            steps {
+                echo 'Deploying services on host machine...'
+                sh '''
+                    cd ${WORKSPACE}
+                    
+                    # Запускаем все сервисы в detached режиме
                     docker compose up -d
+                    
+                    # Показываем статус контейнеров
+                    docker compose ps
                 '''
             }
         }
@@ -98,6 +142,8 @@ EOF
             steps {
                 echo 'Verifying services health...'
                 sh '''
+                    cd ${WORKSPACE}
+                    
                     echo "Giving services 10 seconds to initialize..."
                     sleep 10
 
@@ -105,25 +151,31 @@ EOF
                     docker compose ps
 
                     # Проверка AI бэкенда
+                    echo "Checking AI Backend..."
                     for i in {1..30}; do
-                        if curl -f http://localhost:8001/ping > /dev/null 2>&1; then
+                        if docker compose exec -T ai-backend curl -f http://localhost:8001/ping > /dev/null 2>&1; then
                             echo "[✓] AI Backend is healthy."
                             break
                         fi
                         if [ $i -eq 30 ]; then
-                            echo "[🔴] AI Backend check failed!" && exit 1;
+                            echo "[🔴] AI Backend check failed!"
+                            docker compose logs ai-backend
+                            exit 1
                         fi
                         sleep 2
                     done
 
                     # Проверка DB бэкенда
+                    echo "Checking DB Backend..."
                     for i in {1..30}; do
-                        if curl -f http://localhost:8000/api/v1/colors > /dev/null 2>&1; then
+                        if docker compose exec -T backend curl -f http://localhost:8000/api/v1/colors > /dev/null 2>&1; then
                             echo "[✓] DB Backend is healthy."
                             break
                         fi
                         if [ $i -eq 30 ]; then
-                            echo "[🔴] DB Backend check failed!" && exit 1;
+                            echo "[🔴] DB Backend check failed!"
+                            docker compose logs backend
+                            exit 1
                         fi
                         sleep 2
                     done
@@ -135,9 +187,42 @@ EOF
             steps {
                 echo 'Running smoke tests...'
                 sh '''
-                    curl -s http://localhost:8000/api/v1/colors | grep -q 'deep_blue' || (echo "Smoke test failed on DB API" && exit 1)
-                    curl -s http://localhost:8001/ping | grep -q 'alive' || (echo "Smoke test failed on AI API" && exit 1)
+                    cd ${WORKSPACE}
+                    
+                    # Получаем ID контейнеров для проверки
+                    AI_CONTAINER=$(docker compose ps -q ai-backend)
+                    DB_CONTAINER=$(docker compose ps -q backend)
+                    
+                    # Smoke test для DB API
+                    docker exec $DB_CONTAINER curl -s http://localhost:8000/api/v1/colors | grep -q 'deep_blue' || \
+                        (echo "Smoke test failed on DB API" && exit 1)
+                    
+                    # Smoke test для AI API
+                    docker exec $AI_CONTAINER curl -s http://localhost:8001/ping | grep -q 'alive' || \
+                        (echo "Smoke test failed on AI API" && exit 1)
+                    
                     echo 'All smoke tests passed successfully!'
+                '''
+            }
+        }
+
+        stage('Display Service Info') {
+            steps {
+                echo 'Deployment summary...'
+                sh '''
+                    cd ${WORKSPACE}
+                    
+                    echo "=== Running Containers ==="
+                    docker compose ps
+                    
+                    echo ""
+                    echo "=== Container Resource Usage ==="
+                    docker stats --no-stream $(docker compose ps -q)
+                    
+                    echo ""
+                    echo "=== Service Endpoints ==="
+                    echo "AI Backend: http://$(hostname -I | awk '{print $1}'):8001"
+                    echo "DB Backend: http://$(hostname -I | awk '{print $1}'):8000"
                 '''
             }
         }
@@ -145,15 +230,31 @@ EOF
 
     post {
         success {
-            echo 'Deployment finished successfully!'
+            echo '✅ Deployment finished successfully!'
+            sh '''
+                cd ${WORKSPACE}
+                echo "Active services:"
+                docker compose ps --format "table {{.Name}}\\t{{.Status}}\\t{{.Ports}}"
+            '''
         }
         failure {
-            echo 'Deployment failed!'
+            echo '❌ Deployment failed!'
+            sh '''
+                cd ${WORKSPACE}
+                echo "=== Service Logs ==="
+                docker compose logs --tail=50
+                
+                echo ""
+                echo "=== Cleaning up failed deployment ==="
+                docker compose down || true
+            '''
         }
         always {
             echo 'Cleaning up temporal build artifacts...'
-            // Гарантированно удаляем секреты из воркспейса по окончании сборки
-            sh 'rm -f .env'
+            sh '''
+                # Удаляем секреты из воркспейса
+                rm -f ${WORKSPACE}/.env
+            '''
         }
     }
 }
