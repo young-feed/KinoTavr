@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Кинотавр - Выбор логотипа</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            font-size: 36px;
+        }
+
+        .logos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .logo-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .logo-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .logo-preview {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 20px;
+            border-radius: 50%;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        h2 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+
+        p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .features {
+            text-align: left;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .features li {
+            color: #555;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: transform 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+        }
+
+        .instructions {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            margin-top: 40px;
+        }
+
+        .instructions h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .instructions ol {
+            margin-left: 20px;
+        }
+
+        .instructions li {
+            color: #555;
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+
+        .instructions code {
+            background: #f0f0f0;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: #d63384;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 Выберите логотип для Кинотавра</h1>
+
+        <div class="logos-grid">
+            <!-- Minimalistic -->
+            <div class="logo-card">
+                <div class="logo-preview">
+                    <img src="logo-minimalistic.svg" alt="Минималистичный логотип">
+                </div>
+                <h2>Минималистичный</h2>
+                <p>Чистый и современный дизайн с фокусом на простоте</p>
+                <div class="features">
+                    <ul>
+                        <li>✓ Простая киноплёнка с кнопкой play</li>
+                        <li>✓ Синий градиент (#2481cc)</li>
+                        <li>✓ Отлично масштабируется</li>
+                        <li>✓ Подходит для профессионального стиля</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Colorful -->
+            <div class="logo-card">
+                <div class="logo-preview">
+                    <img src="logo-colorful.svg" alt="Красочный логотип">
+                </div>
+                <h2>Красочный</h2>
+                <p>Яркий и энергичный дизайн с множеством деталей</p>
+                <div class="features">
+                    <ul>
+                        <li>✓ Кинобарабан с цветными элементами</li>
+                        <li>✓ Фиолетово-розовый градиент</li>
+                        <li>✓ Декоративные звёздочки</li>
+                        <li>✓ Радостный и запоминающийся</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Telegram Style -->
+            <div class="logo-card">
+                <div class="logo-preview">
+                    <img src="logo-telegram-style.svg" alt="Логотип в стиле Telegram">
+                </div>
+                <h2>В стиле Telegram</h2>
+                <p>Официальный стиль как у других Telegram ботов</p>
+                <div class="features">
+                    <ul>
+                        <li>✓ Белый фон с голубым градиентом</li>
+                        <li>✓ Telegram цвета (#2AABEE)</li>
+                        <li>✓ Узнаваемый стиль платформы</li>
+                        <li>✓ Профессиональный и надёжный вид</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="instructions">
+            <h3>📝 Как применить выбранный логотип:</h3>
+            <ol>
+                <li>Выберите понравившийся вариант логотипа</li>
+                <li>Скачайте соответствующий файл из папки <code>miniapp/static/</code>:
+                    <ul style="margin-top: 10px;">
+                        <li><code>logo-minimalistic.svg</code></li>
+                        <li><code>logo-colorful.svg</code></li>
+                        <li><code>logo-telegram-style.svg</code></li>
+                    </ul>
+                </li>
+                <li>Переименуйте выбранный файл в <code>logo.svg</code> или обновите путь в коде</li>
+                <li>Для аватара бота конвертируйте SVG в PNG (512x512px)</li>
+                <li>Загрузите PNG в @BotFather через "Edit Bot" → "Edit Botpic"</li>
+            </ol>
+        </div>
+    </div>
+</body>
+</html>

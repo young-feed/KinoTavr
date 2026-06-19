@@ -1,0 +1,112 @@
+version: '3.8'
+
+services:
+  # 1. PostgreSQL database
+  db:
+    image: postgres:15-alpine
+    container_name: kinotavr_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: movies_db
+      POSTGRES_USER: user_admin
+      POSTGRES_PASSWORD: super_secure_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db_kinotavr/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user_admin -d movies_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 2. DB parser/filler service
+  parser:
+    build:
+      context: ./db_kinotavr/parser
+      dockerfile: Dockerfile
+    container_name: kinotavr_parser
+    environment:
+      - DB_HOST=db
+      - DB_NAME=movies_db
+      - DB_USER=user_admin
+      - DB_PASSWORD=super_secure_password
+      - KP_API_KEY=${KP_API_KEY:-MD2BWNZ-3A64EXF-NN3E788-7XJGD5E}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: on-failure
+
+  # 3. Backend API (db_kinotavr/backend)
+  backend_db:
+    build:
+      context: ./db_kinotavr/backend
+      dockerfile: Dockerfile
+    container_name: kinotavr_backend_db
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_HOST=db
+      - DB_NAME=movies_db
+      - DB_USER=user_admin
+      - DB_PASSWORD=super_secure_password
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/v1/colors || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 4. Main AI backend (root main.py)
+  ai_backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.ai
+    container_name: kinotavr_ai_backend
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DB_HOST=db
+      - DB_NAME=movies_db
+      - DB_USER=user_admin
+      - DB_PASSWORD=super_secure_password
+      - DB_PORT=5432
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8001/ping || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 5. Telegram Bot
+  telegram_bot:
+    build:
+      context: ./tgBot
+      dockerfile: Dockerfile
+    container_name: kinotavr_telegram_bot
+    restart: unless-stopped
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - API_URL=http://ai_backend:8001/chat
+      - WEBAPP_URL=${WEBAPP_URL:-http://localhost:8080}
+    depends_on:
+      ai_backend:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+
+volumes:
+  pgdata:
+    driver: local
+
+networks:
+  default:
+    name: kinotavr_network
