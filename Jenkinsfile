@@ -23,6 +23,7 @@ pipeline {
             steps {
                 echo 'Checking out code from Git...'
 		        cleanWs()
+                sh 'git config --global http.sslVerify false'
                 checkout scm
                 echo "код успешно скачан"
             }
