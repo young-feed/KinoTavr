@@ -21,7 +21,7 @@ jobs:
           script: |
             # 1. Переходим в папку с проектом на сервере
             # (Замени /var/www/KinoTavr на реальный путь к проекту на твоем сервере!)
-            cd /var/www/KinoTavr
+            cd /var/jenkins_home/workspace/
             
             # 2. Сбрасываем локальные изменения (если они были) и качаем свежий код
             git reset --hard HEAD
