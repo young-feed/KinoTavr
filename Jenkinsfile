@@ -23,7 +23,7 @@ pipeline {
             steps {
                 echo 'Checking out code from Git...'
 		        cleanWs()
-                checkoutscm
+                checkout scm
             }
         }
 
