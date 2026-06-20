@@ -92,12 +92,11 @@ async def process_chat(request: BotRequest):
         }
     }
 
-    api_key = os.getenv("OPENAI_API_KEY")
-    # Официальный эндпоинт v1beta для модели gemini-1.5-flash
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+    api_key = os.getenv("GEMINI_API_KEY")
+    # Новый корректный URL согласно официальным докам Google AI
+    url = f"https://api-gateway.ai.google.dev/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
 
     try:
-        # Делаем прямой асинхронный HTTP-запрос к Google
         async with httpx.AsyncClient() as client:
             response = await client.post(url, json=gemini_payload, timeout=15.0)
             
@@ -105,7 +104,6 @@ async def process_chat(request: BotRequest):
                 return {"action": "ask", "text": f"Ошибка Gemini API ({response.status_code}): {response.text}"}
                 
             response_data = response.json()
-            # Достаем текст из структуры ответа Google
             ai_answer_text = response_data['candidates'][0]['content']['parts'][0]['text']
             
     except Exception as e:
