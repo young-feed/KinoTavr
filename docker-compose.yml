@@ -102,6 +102,12 @@ services:
         condition: service_healthy
     ports:
       - "8080:8081"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   # 6. ngrok tunnel for Mini App (optional, for development)
   ngrok:
@@ -116,10 +122,10 @@ services:
     ports:
       - "4040:4040"  # ngrok web interface at http://localhost:4040
     depends_on:
-      - telegram_bot
+      telegram_bot:
+        condition: service_healthy
     environment:
       - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
-
 
 volumes:
   pgdata:
