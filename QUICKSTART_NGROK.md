@@ -20,13 +20,10 @@ NGROK_AUTHTOKEN=your_ngrok_token
 WEBAPP_URL=http://localhost:8081  # Обновится автоматически
 ```
 
-## Шаг 3: Запустите все сервисы с ngrok
+## Шаг 3: Запустите все сервисы
 
 ```bash
-# Запуск всех сервисов включая ngrok
-docker-compose --profile dev up -d
-
-# Или только основные сервисы без ngrok
+# Запуск всех сервисов (включая ngrok)
 docker-compose up -d
 ```
 
@@ -67,7 +64,7 @@ curl http://localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url'
 docker-compose restart telegram_bot
 
 # Остановить все
-docker-compose --profile dev down
+docker-compose down
 ```
 
 ## Production

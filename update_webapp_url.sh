@@ -13,7 +13,7 @@ NGROK_URL=$(curl -s http://localhost:4040/api/tunnels | jq -r '.tunnels[0].publi
 
 if [ -z "$NGROK_URL" ] || [ "$NGROK_URL" == "null" ]; then
     echo "❌ Error: Cannot get ngrok URL"
-    echo "Make sure ngrok is running: docker-compose --profile dev up -d ngrok"
+    echo "Make sure ngrok is running: docker-compose up -d"
     exit 1
 fi
 
