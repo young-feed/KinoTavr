@@ -474,10 +474,10 @@ async def init_webapp():
     runner = web.AppRunner(app)
     await runner.setup()
 
-    site = web.TCPSite(runner, 'localhost', 8081)
+    site = web.TCPSite(runner, '0.0.0.0', 8081)
     await site.start()
 
-    logging.info("WebApp server started at http://localhost:8080")
+    logging.info("WebApp server started at http://:8080")
 
 
 async def main():
