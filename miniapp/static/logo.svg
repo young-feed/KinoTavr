@@ -1,0 +1,71 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background with multiple gradients -->
+  <circle cx="256" cy="256" r="256" fill="url(#bgGradient)"/>
+
+  <!-- Decorative circles -->
+  <circle cx="120" cy="120" r="40" fill="#FF6B6B" opacity="0.3"/>
+  <circle cx="390" cy="100" r="50" fill="#4ECDC4" opacity="0.3"/>
+  <circle cx="100" cy="380" r="35" fill="#FFE66D" opacity="0.3"/>
+  <circle cx="400" cy="400" r="45" fill="#95E1D3" opacity="0.3"/>
+
+  <!-- Main film reel shape -->
+  <circle cx="256" cy="256" r="140" fill="url(#filmGradient)" opacity="0.95"/>
+
+  <!-- Film reel holes (like a classic film reel) -->
+  <circle cx="256" cy="256" r="110" fill="white"/>
+  <circle cx="256" cy="256" r="85" fill="url(#centerGradient)"/>
+
+  <!-- Decorative holes around -->
+  <circle cx="256" cy="146" r="18" fill="#FF6B6B"/>
+  <circle cx="331" cy="181" r="18" fill="#4ECDC4"/>
+  <circle cx="366" cy="256" r="18" fill="#FFE66D"/>
+  <circle cx="331" cy="331" r="18" fill="#95E1D3"/>
+  <circle cx="256" cy="366" r="18" fill="#A8E6CF"/>
+  <circle cx="181" cy="331" r="18" fill="#FF8B94"/>
+  <circle cx="146" cy="256" r="18" fill="#C7CEEA"/>
+  <circle cx="181" cy="181" r="18" fill="#FFDAC1"/>
+
+  <!-- Center play button with glow -->
+  <circle cx="256" cy="256" r="58" fill="url(#playGradient)"/>
+  <circle cx="256" cy="256" r="58" fill="url(#glowGradient)" opacity="0.5"/>
+  <path d="M238 226 L238 286 L294 256 Z" fill="white"/>
+
+  <!-- Sparkles -->
+  <path d="M180 140 L185 150 L195 145 L190 155 L200 160 L190 165 L185 175 L180 165 L170 160 L180 155 L175 145 Z" fill="white" opacity="0.8"/>
+  <path d="M350 340 L353 346 L359 343 L356 349 L362 352 L356 355 L353 361 L350 355 L344 352 L350 349 L347 343 Z" fill="white" opacity="0.8"/>
+
+  <!-- Film strip bottom decoration -->
+  <rect x="140" y="400" width="232" height="40" rx="8" fill="white" opacity="0.2"/>
+  <rect x="155" y="410" width="12" height="20" rx="3" fill="#FF6B6B" opacity="0.6"/>
+  <rect x="185" y="410" width="12" height="20" rx="3" fill="#4ECDC4" opacity="0.6"/>
+  <rect x="215" y="410" width="12" height="20" rx="3" fill="#FFE66D" opacity="0.6"/>
+  <rect x="245" y="410" width="12" height="20" rx="3" fill="#95E1D3" opacity="0.6"/>
+  <rect x="275" y="410" width="12" height="20" rx="3" fill="#A8E6CF" opacity="0.6"/>
+  <rect x="305" y="410" width="12" height="20" rx="3" fill="#FF8B94" opacity="0.6"/>
+  <rect x="335" y="410" width="12" height="20" rx="3" fill="#C7CEEA" opacity="0.6"/>
+
+  <!-- Gradients -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#764ba2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f093fb;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="filmGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFD89B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#19547B;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="centerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8E2DE2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4A00E0;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="playGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF6B6B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FF8E53;stop-opacity:1" />
+    </linearGradient>
+    <radialGradient id="glowGradient">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0" />
+    </radialGradient>
+  </defs>
+</svg>
