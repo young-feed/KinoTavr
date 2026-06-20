@@ -30,7 +30,7 @@ app.add_middleware(
 )
 
 ai_client = AsyncOpenAI(
-    api_key=os.getenv("OPENAI_API_KEY")
+    api_key=os.getenv("OPENAI_API_KEY"),
     base_url="https://api.groq.com/openai/v1"
 )
 
