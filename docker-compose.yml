@@ -103,6 +103,25 @@ services:
     ports:
       - "8080:8081"
 
+  # 6. ngrok tunnel for Mini App (optional, for development)
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: kinotavr_ngrok
+    restart: unless-stopped
+    command:
+      - "http"
+      - "telegram_bot:8081"
+      - "--authtoken=${NGROK_AUTHTOKEN}"
+      - "--log=stdout"
+    ports:
+      - "4040:4040"  # ngrok web interface at http://localhost:4040
+    depends_on:
+      - telegram_bot
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+    profiles:
+      - dev  # Only run with: docker-compose --profile dev up
+
 volumes:
   pgdata:
     driver: local
