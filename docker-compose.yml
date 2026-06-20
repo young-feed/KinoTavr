@@ -119,8 +119,7 @@ services:
       - telegram_bot
     environment:
       - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
-    profiles:
-      - dev  # Only run with: docker-compose --profile dev up
+
 
 volumes:
   pgdata:
