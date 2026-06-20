@@ -4,17 +4,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
 import json
-import asyncio
-# Импортируем официальную библиотеку Google AI
-import google.generativeai as genai
+import httpx  # Используем для прямых асинхронных запросов к API Gemini
 from dotenv import load_dotenv
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
 load_dotenv()
-
-# Настраиваем Gemini API
-genai.configure(api_key=os.getenv("OPENAI_API_KEY"))
 
 class Message(BaseModel):
     question: str
@@ -57,11 +52,8 @@ SYSTEM_PROMPT = """
 ТВОЙ ОТВЕТ ДОЛЖЕН БЫТЬ СТРОГО В ФОРМАТЕ JSON.
 
 🚨 ФОРМАТ ОТВЕТА (выбирай один из двух):
-
-Вариант 1 (Настроение непонятно, нужно уточнить):
 {"action": "ask", "text": "Сгенерируй здесь свой уникальный, живой и короткий вопрос."}
-
-Вариант 2 (Настроение понятно, делаем рекомендацию):
+ИЛИ
 {"action": "recommend", "text": "Сгенерируй здесь свою стильную подводку (1-2 предложения).", "color": "выбранный_цвет_из_палитры"}
 
 🎨 ПАЛИТРА НАСТРОЕНИЙ (СТРОГИЕ КЛЮЧИ):
@@ -71,21 +63,6 @@ SYSTEM_PROMPT = """
 - "black" — Страх (Ужасы, хорроры, саспенс, гнетущая атмосфера).
 - "purple" — Загадочность (Фантастика, космос, магия, фэнтези, сказки).
 - "emerald" — Интрига (Детективы, шпионские игры, заговоры, головоломки).
-
-🧠 КАК ВЕСТИ ДИАЛОГ:
-1. ЕСЛИ КЛИЕНТ ГОВОРИТ "НЕ ЗНАЮ" ИЛИ "ЛЮБОЙ":
-- Не задавай скучные вопросы вроде "Какой жанр предпочитаешь?".
-- Предлагай ассоциации или микро-игры в поле text. Например: "Представь, что за окном дождь. Нальем горячий чай и включим что-то уютное, или добавим мрачного детектива?", "Выбирай: полет в космос, разборки мафии или магия?", "Хочешь, чтобы фильм обнял тебя или дал пинка?".
-
-2. ЕСЛИ НАСТРОЕНИЕ ЯСНО:
-- Сразу возвращай action: recommend. 
-- В поле text пиши уверенную подводку, например: "То что нужно. Заваривай чай, я нашел идеальный вариант.", "Окей, хочется крови и зрелищ. Держи пушку."
-
-🧹 АНТИ-ПОВТОРЫ И ЗАПРЕТЫ:
-- НИКОГДА не копируй мои инструкции в свой ответ. Придумывай текст сам.
-- НИКОГДА не упоминай названия фильмов, актеров или режиссеров.
-- НИКОГДА не пиши "Я понял, что тебе грустно". Действуй тоньше.
-- Общайся на "ты", будь уверенным киноманом-психологом, а не роботом-помощником.
 """
 
 @app.get("/ping")
@@ -94,41 +71,50 @@ async def ping_server():
 
 @app.post('/chat')
 async def process_chat(request: BotRequest):
-    # Создаем историю диалога в формате, который понимает Gemini
+    # Формируем историю диалога для Gemini API
     contents = []
-    
     for msg in request.consversion:
-        # У Лламы ты пушил раздельно, в Gemini мы группируем реплики
         contents.append({"role": "model", "parts": [{"text": msg.question}]})
         contents.append({"role": "user", "parts": [{"text": msg.answer}]})
+        
+    if not contents:
+        contents.append({"role": "user", "parts": [{"text": "Привет! Начнем диалог."}]})
 
-    # Используем модель gemini-1.5-flash — она очень быстрая и бесплатная
-    model = genai.GenerativeModel(
-        model_name="gemini-1.5-flash",
-        system_instruction=SYSTEM_PROMPT, # Системный промпт вшивается сюда
-        generation_config={
-            "response_mime_type": "application/json", # Жестко требуем JSON на выходе
+    # Формируем Payload по официальной спецификации Google Gemini API
+    gemini_payload = {
+        "contents": contents,
+        "systemInstruction": {
+            "parts": [{"text": SYSTEM_PROMPT}]
+        },
+        "generationConfig": {
+            "responseMimeType": "application/json",
             "temperature": 0.7
         }
-    )
+    }
+
+    api_key = os.getenv("OPENAI_API_KEY")
+    # Официальный эндпоинт v1beta для модели gemini-1.5-flash
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
 
     try:
-        # Библиотека google-generativeai не имеет нативного async метода, 
-        # поэтому мы безопасно запускаем синхронный вызов в асинхронном потоке (ThreadPool)
-        loop = asyncio.get_running_loop()
-        response = await loop.run_in_executor(
-            None, 
-            lambda: model.generate_content(contents if contents else "Привет! Начнем диалог.")
-        )
-        ai_answer_text = response.text
+        # Делаем прямой асинхронный HTTP-запрос к Google
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, json=gemini_payload, timeout=15.0)
+            
+            if response.status_code != 200:
+                return {"action": "ask", "text": f"Ошибка Gemini API ({response.status_code}): {response.text}"}
+                
+            response_data = response.json()
+            # Достаем текст из структуры ответа Google
+            ai_answer_text = response_data['candidates'][0]['content']['parts'][0]['text']
+            
     except Exception as e:
-        # Если само API Google упало (например, проблемы с ключом)
-        return {"action": "ask", "text": f"Проблема с ИИ-центром: {str(e)}"}
+        return {"action": "ask", "text": f"Не удалось связаться с ИИ: {str(e)}"}
 
-    # Превращаем ответ в Python-словарь
+    # Превращаем ответ ИИ в Python-словарь
     try:
         result = json.loads(ai_answer_text)
-    except json.JSONDecodeError:
+    except (json.JSONDecodeError, KeyError):
         return {"action": "ask", "text": "Не совсем понял, давай уточним. Какое настроение ищем?"}
 
     # Если AI определил цвет настроения, достаем фильм из базы

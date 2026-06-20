@@ -4,3 +4,4 @@ pydantic
 python-dotenv
 google.generativeai
 psycopg2-binary
+httpx>=0.24.0
