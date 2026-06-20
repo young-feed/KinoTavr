@@ -94,7 +94,7 @@ async def process_chat(request: BotRequest):
 
     api_key = os.getenv("GEMINI_API_KEY")
     # Новый корректный URL согласно официальным докам Google AI
-    url = f"https://api-gateway.ai.google.dev/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
 
     try:
         async with httpx.AsyncClient() as client:
