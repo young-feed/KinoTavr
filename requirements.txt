@@ -2,6 +2,5 @@ fastapi
 uvicorn[standard]
 pydantic
 python-dotenv
-google.generativeai
+openai
 psycopg2-binary
-httpx>=0.24.0

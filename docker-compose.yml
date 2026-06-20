@@ -85,9 +85,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
 
   # 5. Telegram Bot
   telegram_bot:
@@ -99,7 +96,7 @@ services:
     environment:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - API_URL=http://ai_backend:8001/chat
-      - WEBAPP_URL=${WEBAPP_URL:-http://telegram_bot:8081}
+      - WEBAPP_URL=${WEBAPP_URL:-http://localhost:8081}
     depends_on:
       ai_backend:
         condition: service_healthy

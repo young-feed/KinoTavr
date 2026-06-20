@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
 import json
-import httpx  # Используем для прямых асинхронных запросов к API Gemini
+from openai import OpenAI, AsyncOpenAI
 from dotenv import load_dotenv
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -14,13 +14,13 @@ load_dotenv()
 class Message(BaseModel):
     question: str
     answer: str
-
 class BotRequest(BaseModel):
     user_id: int
     consversion: list[Message]
 
 app = FastAPI()
 
+# Добавляем CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -29,6 +29,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+ai_client = AsyncOpenAI(
+    api_key=os.getenv("OPENAI_API_KEY"),
+    base_url="https://api.groq.com/openai/v1"
+)
+
+# Функция подключения к базе данных
 def get_db_connection():
     return psycopg2.connect(
         host=os.getenv("DB_HOST", "localhost"),
@@ -49,11 +55,14 @@ SYSTEM_PROMPT = """
 
 🔥 ГЛАВНОЕ (КРИТИЧЕСКИ ВАЖНО):
 Ты НЕ ищешь и НЕ предлагаешь конкретные названия фильмов! Твоя задача — только определить эмоцию и выдать её цвет. Фильм подберет база данных.
-ТВОЙ ОТВЕТ ДОЛЖЕН БЫТЬ СТРОГО В ФОРМАТЕ JSON.
+ТВОЙ ОТВЕТ ДОЛЖЕН БЫТЬ СТРОГО В ФОРМАТЕ JSON. НИКАКОГО ТЕКСТА ИЛИ МАРКДАУНА (```json) ДО ИЛИ ПОСЛЕ.
 
 🚨 ФОРМАТ ОТВЕТА (выбирай один из двух):
+
+Вариант 1 (Настроение непонятно, нужно уточнить):
 {"action": "ask", "text": "Сгенерируй здесь свой уникальный, живой и короткий вопрос."}
-ИЛИ
+
+Вариант 2 (Настроение понятно, делаем рекомендацию):
 {"action": "recommend", "text": "Сгенерируй здесь свою стильную подводку (1-2 предложения).", "color": "выбранный_цвет_из_палитры"}
 
 🎨 ПАЛИТРА НАСТРОЕНИЙ (СТРОГИЕ КЛЮЧИ):
@@ -63,56 +72,52 @@ SYSTEM_PROMPT = """
 - "black" — Страх (Ужасы, хорроры, саспенс, гнетущая атмосфера).
 - "purple" — Загадочность (Фантастика, космос, магия, фэнтези, сказки).
 - "emerald" — Интрига (Детективы, шпионские игры, заговоры, головоломки).
+
+🧠 КАК ВЕСТИ ДИАЛОГ:
+1. ЕСЛИ КЛИЕНТ ГОВОРИТ "НЕ ЗНАЮ" ИЛИ "ЛЮБОЙ":
+- Не задавай скучные вопросы вроде "Какой жанр предпочитаешь?".
+- Предлагай ассоциации или микро-игры в поле text. Например: "Представь, что за окном дождь. Нальем горячий чай и включим что-то уютное, или добавим мрачного детектива?", "Выбирай: полет в космос, разборки мафии или магия?", "Хочешь, чтобы фильм обнял тебя или дал пинка?".
+
+2. ЕСЛИ НАСТРОЕНИЕ ЯСНО:
+- Сразу возвращай action: recommend. 
+- В поле text пиши уверенную подводку, например: "То что нужно. Заваривай чай, я нашел идеальный вариант.", "Окей, хочется крови и зрелищ. Держи пушку."
+
+🧹 АНТИ-ПОВТОРЫ И ЗАПРЕТЫ:
+- НИКОГДА не копируй мои инструкции в свой ответ. Придумывай текст сам.
+- НИКОГДА не упоминай названия фильмов, актеров или режиссеров.
+- НИКОГДА не пиши "Я понял, что тебе грустно". Действуй тоньше.
+- Общайся на "ты", будь уверенным киноманом-психологом, а не роботом-помощником.
 """
 
 @app.get("/ping")
+
 async def ping_server():
     return {"status": "Kinotavr is alive!"}
 
 @app.post('/chat')
 async def process_chat(request: BotRequest):
-    # Формируем историю диалога для Gemini API
-    contents = []
+    history_lenght = len(request.consversion)
+    masseges_for_ai = [
+        {"role": "system",
+         "content": SYSTEM_PROMPT
+         }
+    ]
     for msg in request.consversion:
-        contents.append({"role": "model", "parts": [{"text": msg.question}]})
-        contents.append({"role": "user", "parts": [{"text": msg.answer}]})
-        
-    if not contents:
-        contents.append({"role": "user", "parts": [{"text": "Привет! Начнем диалог."}]})
+        masseges_for_ai.append({"role": "assistant", "content": msg.question})
+        masseges_for_ai.append({"role": "user", "content": msg.answer})
 
-    # Формируем Payload по официальной спецификации Google Gemini API
-    gemini_payload = {
-        "contents": contents,
-        "systemInstruction": {
-            "parts": [{"text": SYSTEM_PROMPT}]
-        },
-        "generationConfig": {
-            "responseMimeType": "application/json",
-            "temperature": 0.7
-        }
-    }
+    response = await ai_client.chat.completions.create(
+        model="llama-3.1-8b-instant",
+        messages=masseges_for_ai,
+        response_format={"type": "json_object"},
+        temperature=0.7
+    )
+    ai_answer_text = response.choices[0].message.content
 
-    api_key = os.getenv("GEMINI_API_KEY")
-    # Новый корректный URL согласно официальным докам Google AI
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
-
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.post(url, json=gemini_payload, timeout=15.0)
-            
-            if response.status_code != 200:
-                return {"action": "ask", "text": f"Ошибка Gemini API ({response.status_code}): {response.text}"}
-                
-            response_data = response.json()
-            ai_answer_text = response_data['candidates'][0]['content']['parts'][0]['text']
-            
-    except Exception as e:
-        return {"action": "ask", "text": f"Не удалось связаться с ИИ: {str(e)}"}
-
-    # Превращаем ответ ИИ в Python-словарь
+    # 3. Превращаем текст в настоящий Python-словарь с помощью библиотеки json
     try:
         result = json.loads(ai_answer_text)
-    except (json.JSONDecodeError, KeyError):
+    except json.JSONDecodeError:
         return {"action": "ask", "text": "Не совсем понял, давай уточним. Какое настроение ищем?"}
 
     # Если AI определил цвет настроения, достаем фильм из базы
@@ -142,8 +147,10 @@ async def process_chat(request: BotRequest):
             result["movie"] = None
             result["db_error"] = str(e)
 
+    # 4. Отдаем результат Телеграм-боту!
     return result
 
+# Дополнительный эндпоинт для получения всех цветов
 @app.get('/colors')
 async def get_colors():
     try:
