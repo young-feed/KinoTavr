@@ -71,7 +71,7 @@ services:
     ports:
       - "8001:8001"
     environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_API_KEY=gsk_eqMXTmScnoMUVeDfAVMSWGdyb3FYn8WBxBFbgV@4onrvyfVKpm3o
       - DB_HOST=db
       - DB_NAME=movies_db
       - DB_USER=user_admin
