@@ -31,4 +31,4 @@ jobs:
             # 3. Пересобираем и запускаем контейнеры
             # Здесь Docker на хосте отработает штатно, без багов с флагами
             docker compose down
-            docker compose up --profile dev -d --build
+            docker compose up -d --build
