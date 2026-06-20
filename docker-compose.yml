@@ -95,7 +95,8 @@ services:
     restart: unless-stopped
     environment:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - API_URL=http://ai_backend:8001/chat
+      - API_URL=http://ai_backend:8001/chat  # Internal Docker URL for bot
+      - PUBLIC_API_URL=${PUBLIC_API_URL:-http://localhost:8001/chat}  # Public URL for Mini App
       - WEBAPP_URL=${WEBAPP_URL:-http://localhost:8081}
     depends_on:
       ai_backend:

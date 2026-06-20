@@ -18,7 +18,8 @@ load_dotenv()
 
 # Настройки
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-API_URL = os.getenv("API_URL")
+API_URL = os.getenv("API_URL")  # Internal Docker URL for bot
+PUBLIC_API_URL = os.getenv("PUBLIC_API_URL", API_URL)  # Public URL for Mini App (browser)
 WEBAPP_URL = os.getenv("WEBAPP_URL", "https://your-domain.com")  # URL где будет размещено приложение
 
 # Инициализация бота и диспетчера
@@ -423,8 +424,8 @@ async def webapp_handler(request):
     """Обработчик для главной страницы Mini App"""
     with open('miniapp/templates/index.html', 'r', encoding='utf-8') as f:
         html = f.read()
-        # Replace API_URL placeholder
-        html = html.replace('API_URL_PLACEHOLDER', API_URL)
+        # Replace API_URL placeholder with PUBLIC_API_URL (accessible from browser)
+        html = html.replace('API_URL_PLACEHOLDER', PUBLIC_API_URL)
     return web.Response(text=html, content_type='text/html')
 
 
@@ -460,7 +461,7 @@ async def serve_static(request):
 
         # Replace API_URL placeholder in JavaScript
         if filename.endswith('.js'):
-            content = content.replace('API_URL_PLACEHOLDER', API_URL)
+            content = content.replace('API_URL_PLACEHOLDER', PUBLIC_API_URL)
 
         return web.Response(text=content, content_type=content_type)
 
