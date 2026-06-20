@@ -14,7 +14,7 @@ from psycopg2.extras import RealDictCursor
 load_dotenv()
 
 # Настраиваем Gemini API
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+genai.configure(api_key=os.getenv("OPENAI_API_KEY"))
 
 class Message(BaseModel):
     question: str
